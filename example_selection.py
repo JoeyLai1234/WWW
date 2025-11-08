@@ -49,7 +49,10 @@ def main():
         model.load_state_dict(new_state_dict)
 
 
-    model.cuda().eval()
+    # device-aware: prefer CUDA if available
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+    model.eval()
 
     # if not os.path.exists(f"{args.save_root}\\slice_act_{args.num_act-1}"):
     if layer == 'fc':
@@ -68,7 +71,7 @@ def main():
             counter = 0
 
             for batch_idx, (image, labels) in enumerate(tqdm(trainloader)):
-                image = image.cuda()
+                image = image.to(device)
                 act_matrix.append(model(image).squeeze().cpu().detach().numpy())
                 if batch_idx % int(len(trainloader)/args.num_act) == 0 and batch_idx != 0:
                     act_matrix = np.concatenate(act_matrix, axis=0)
@@ -96,7 +99,7 @@ def main():
             counter = 0
 
             for batch_idx, (image, labels) in enumerate(tqdm(trainloader)):
-                image = image.cuda()
+                image = image.to(device)
                 act_matrix.append(model.extract_feature_4(image).squeeze().cpu().detach().numpy())
                 if batch_idx % int(len(trainloader)/args.num_act) == 0 and batch_idx != 0:
                     act_matrix = np.concatenate(act_matrix, axis=0)

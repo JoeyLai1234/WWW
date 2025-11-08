@@ -19,6 +19,7 @@ def parse_args():
     parser.add_argument('--concept_root', default='./utils', help='Path to concept')
     parser.add_argument('--num_example', default=40, type=int, help='# of examples to be used')
     parser.add_argument('--alpha', default=95, type=int, help='# of concept to select in img')
+    parser.add_argument('--data', default='80', help='Which word set to use: 1, 80, 365, or "broaden"')
     return parser.parse_args()
 
 def text_to_feature(all_words, model, device, args, template=False):
@@ -215,7 +216,11 @@ def main():
     base_template = ['A photo of a']
     template = True    
     adaptive = True
-    data = 80         # 1k, 20k, 80k, 365, broaden
+    # allow CLI override for dataset word choice
+    if str(args.data).isdigit():
+        data = int(args.data)
+    else:
+        data = args.data
     layer = 'fc'      # fc, l4, l3, l2, l1
 
     args.img_save_root = f'./images/example_val_{layer}'

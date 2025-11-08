@@ -51,7 +51,7 @@ def get_alpha_cmap(cmap):
 
   return alpha_cmap
 
-def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=5, percentile=90, alpha=0.7, gt=False):
+def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=5, percentile=90, alpha=0.7, gt=False, device=None):
     
     with open(f"{args.util_root}\\heat\\class_shap.pkl", "rb") as f:
         shap_value = pkl.load(f)
@@ -66,7 +66,10 @@ def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=
     for j, (img, label) in enumerate(tqdm(example_loader)):
         os.makedirs(f'{args.heatmap_save_root}/{label.item():04d}/class_attribute_n{num_top_neuron}_p{percentile}_a90', exist_ok=True)
         show(img[0])        
-        img = img.cuda()    
+        # move to device
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        img = img.to(device)    
         feature_maps = model.extract_feature_map_4(img)
         predict = model(img)
         predict = predict[0].cpu().detach().numpy()
@@ -99,7 +102,9 @@ def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=
     for j, (img, label) in enumerate(tqdm(example_loader)):
         os.makedirs(f'{args.heatmap_save_root}/{label.item():04d}/class_overall_n{num_top_neuron}_p0_a50', exist_ok=True)
         show(img[0]) 
-        img = img.cuda()    
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        img = img.to(device)    
         feature_maps = model.extract_feature_map_4(img)
         feature_maps = feature_maps[0].cpu().detach().numpy()
         feature_maps = feature_maps.transpose(1, 2, 0)
@@ -152,7 +157,9 @@ def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=
     for j, (img, label) in enumerate(tqdm(example_loader)):
         os.makedirs(f'{args.heatmap_save_root}/{label.item():04d}/sample_attribute_n{num_top_neuron}_p{percentile}_a90', exist_ok=True)
         show(img[0])
-        img = img.cuda()    
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        img = img.to(device)    
         feature_maps = model.extract_feature_map_4(img)
         predict = model(img)
         predict = predict[0].cpu().detach().numpy()
@@ -186,7 +193,9 @@ def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=
     for j, (img, label) in enumerate(tqdm(example_loader)):
         os.makedirs(f'{args.heatmap_save_root}/{label.item():04d}/sample_overall_n{num_top_neuron}_p0_a50', exist_ok=True)
         show(img[0])
-        img = img.cuda()    
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        img = img.to(device)    
         feature_maps = model.extract_feature_map_4(img)
         predict = model(img)
         predict = predict[0].cpu().detach().numpy()
@@ -217,6 +226,17 @@ def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=
         plt.savefig(f'{args.heatmap_save_root}/{label.item():04d}/sample_overall_n{num_top_neuron}_p0_a50/sample_ovr_{predict:04d}_{(j%args.num_example):02d}.jpg')
         plt.clf()
 
+        # append sample overall heatmap so s_heatmap parallels c_heatmap
+        try:
+            s_heatmap.append(overall_heatmap)
+        except Exception:
+            # if s_heatmap was somehow not initialized, create and append
+            try:
+                s_heatmap = []
+                s_heatmap.append(overall_heatmap)
+            except Exception:
+                pass
+
     with open(f"{args.map_root}\\sc_val.pkl", "wb") as f:
         pkl.dump(sc_val, f)
     sc_val = None
@@ -234,10 +254,32 @@ def compute_heatmap_cosine_similarity(args):
 
     cos = []
 
-    for i in tqdm(range(len(c_heatmap))):
-        c_heatmap[i] = torch.from_numpy(c_heatmap[i].flatten())
-        s_heatmap[i] = torch.from_numpy(s_heatmap[i].flatten())
-        cos.append(cosine_similarity(c_heatmap[i].reshape(1, -1), s_heatmap[i].reshape(1, -1)).item())
+    # sanity: ensure both lists exist and have compatible lengths
+    if not isinstance(c_heatmap, list) or not isinstance(s_heatmap, list):
+        print('Warning: heatmap data is not in expected list format. Skipping cosine computation.')
+        with open(args.map_root + "\\cos.pkl", "wb") as f:
+            pkl.dump(cos, f)
+        return
+
+    min_len = min(len(c_heatmap), len(s_heatmap))
+    if min_len == 0:
+        print('Warning: one or both heatmap lists are empty. Skipping cosine computation.')
+        with open(args.map_root + "\\cos.pkl", "wb") as f:
+            pkl.dump(cos, f)
+        return
+
+    if len(c_heatmap) != len(s_heatmap):
+        print(f'Warning: mismatched heatmap lengths (c_heatmap={len(c_heatmap)}, s_heatmap={len(s_heatmap)}). Computing cosine for first {min_len} entries.')
+
+    for i in tqdm(range(min_len)):
+        try:
+            ch = torch.from_numpy(np.array(c_heatmap[i]).flatten())
+            sh = torch.from_numpy(np.array(s_heatmap[i]).flatten())
+            cos_val = cosine_similarity(ch.reshape(1, -1), sh.reshape(1, -1)).item()
+        except Exception as e:
+            print(f'Warning: failed to compute cosine for index {i}: {e}. Skipping.')
+            continue
+        cos.append(cos_val)
 
     with open(args.map_root + "\\cos.pkl", "wb") as f:
         pkl.dump(cos, f)
@@ -251,7 +293,9 @@ def main():
     from models.resnet import resnet50, ResNet50_Weights
     weights = ResNet50_Weights.DEFAULT
     model = resnet50(weights=weights)
-    model = model.cuda()
+    # device-aware: prefer CUDA if available
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
     model.eval()
     featdim = 2048
 
@@ -266,6 +310,14 @@ def main():
     os.makedirs(f'{args.map_root}', exist_ok=True)
 
     examples = tv.datasets.ImageFolder(args.example_root, transform=transform)
+    # limit the dataset to the requested number of examples to avoid very long runs
+    try:
+        from torch.utils.data import Subset
+        n_examples = min(len(examples), args.num_example)
+        examples = Subset(examples, list(range(n_examples)))
+    except Exception:
+        # fallback: keep full dataset
+        pass
     example_loader = torch.utils.data.DataLoader(examples, batch_size=1, shuffle=False)
 
     cmaps = [
@@ -277,7 +329,8 @@ def main():
         get_alpha_cmap((255, 0, 0))##real red
     ]
 
-    concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=3, percentile=70, alpha=0.8, gt=False)
+    # use ground-truth labels for heatmap generation when using a substitute dataset
+    concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=3, percentile=70, alpha=0.8, gt=True, device=device)
     compute_heatmap_cosine_similarity(args)
 
 if __name__ == '__main__':

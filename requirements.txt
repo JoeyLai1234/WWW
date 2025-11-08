@@ -1,0 +1,38 @@
+# Requirements for the small smoke demo (Tiny-ImageNet)
+# Note: For CPU-only PyTorch install the official CPU wheels first:
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+# Then install the remaining requirements with:
+#   pip install -r requirements.txt
+
+# Core deep learning
+torch
+torchvision
+
+# Optional model libs
+timm
+
+# OpenAI CLIP (install from GitHub to ensure latest compatible version)
+git+https://github.com/openai/CLIP.git
+
+# Utilities used in the demo
+numpy
+Pillow
+opencv-python
+matplotlib
+scipy
+
+# Text / NLP
+nltk
+ftfy
+regex
+
+# Misc
+tqdm
+
+# If you prefer pinned versions, replace the package names above with exact versions
+# suitable to your environment (e.g. torch==2.0.1+cpu). For CUDA-enabled installs,
+# install the appropriate torch/torchvision wheel from https://pytorch.org/ and then
+# run `pip install -r requirements.txt` for the remaining packages.
+
+# Development / test tools
+pytest
