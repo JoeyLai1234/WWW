@@ -200,7 +200,9 @@ def concept_discovery(all_synsets, args, all_words_wotem=None, detail=False,  ad
     else:
         adp_name = 'woadp'
 
-    with open(f'{args.concept_root}\\www_{data}k_{tem_name}_{adp_name}_{args.alpha}.pkl', 'wb') as f: # directory of NM_img_val_1k.pkl
+    out_name = f'www_{data}k_{tem_name}_{adp_name}_{args.alpha}.pkl'
+    out_path = os.path.join(args.concept_root, out_name)
+    with open(out_path, 'wb') as f: # directory of NM_img_val_1k.pkl
         pickle.dump((concept,concept_weight), f)
 
 
@@ -243,6 +245,23 @@ def main():
                     all_words_wotem.append(f'{word}')    
                 else:
                     all_words.append(f'{word}')
+    elif isinstance(data, str) and data.lower() in ('tiny', 'tiny-imagenet'):
+        # Load Tiny-ImageNet words.txt (wnid\tlabel per line)
+        tiny_words_file = os.path.join('datasets', 'tiny-imagenet-200', 'words.txt')
+        if os.path.exists(tiny_words_file):
+            with open(tiny_words_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    parts = line.strip().split('\t')
+                    if len(parts) >= 2:
+                        wnid, label = parts[0], parts[1]
+                        if template:
+                            all_words.append(f'A photo of a {label}')
+                            all_words_wotem.append(label)
+                        else:
+                            all_words.append(label)
+                        all_synsets.append(wnid)
+        else:
+            print(f"Warning: Tiny words file not found at {tiny_words_file}. Falling back to ImageNet labels.")
     elif data == 80:
         for synset in wn.all_synsets('n'):
             word = synset.lemma_names()[0].replace('_', ' ')

@@ -53,7 +53,8 @@ def get_alpha_cmap(cmap):
 
 def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=5, percentile=90, alpha=0.7, gt=False, device=None):
     
-    with open(f"{args.util_root}\\heat\\class_shap.pkl", "rb") as f:
+    shap_path = os.path.join(args.util_root, 'heat', 'class_shap.pkl')
+    with open(shap_path, 'rb') as f:
         shap_value = pkl.load(f)
 
     c_heatmap = []
@@ -145,11 +146,13 @@ def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=
         plt.clf()
         # plt.close()
     
-    with open(f"{args.map_root}\\cc_val.pkl", "wb") as f:
+    cc_val_path = os.path.join(args.map_root, 'cc_val.pkl')
+    with open(cc_val_path, 'wb') as f:
         pkl.dump(cc_val, f)
     cc_val = None
 
-    with open(f"{args.map_root}\\c_heatmap.pkl", "wb") as f:
+    c_heatmap_path = os.path.join(args.map_root, 'c_heatmap.pkl')
+    with open(c_heatmap_path, 'wb') as f:
         pkl.dump(c_heatmap, f)
     c_heatmap = None
 
@@ -185,7 +188,8 @@ def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=
         plt.savefig(f'{args.heatmap_save_root}/{label.item():04d}/sample_attribute_n{num_top_neuron}_p{percentile}_a90/sample_att_{predict:04d}_{(j%args.num_example):02d}.jpg')
         plt.clf()
 
-    with open(f"{args.map_root}\\sc_idx.pkl", "wb") as f:
+    sc_idx_path = os.path.join(args.map_root, 'sc_idx.pkl')
+    with open(sc_idx_path, 'wb') as f:
         pkl.dump(sc_idx, f)
     sc_idx = None
 
@@ -237,19 +241,23 @@ def concept_attribution_maps(cmaps, args, model, example_loader, num_top_neuron=
             except Exception:
                 pass
 
-    with open(f"{args.map_root}\\sc_val.pkl", "wb") as f:
+    sc_val_path = os.path.join(args.map_root, 'sc_val.pkl')
+    with open(sc_val_path, 'wb') as f:
         pkl.dump(sc_val, f)
     sc_val = None
-    with open(f"{args.map_root}\\s_heatmap.pkl", "wb") as f:
-        pkl.dump(s_heatmap, f)  
+    s_heatmap_path = os.path.join(args.map_root, 's_heatmap.pkl')
+    with open(s_heatmap_path, 'wb') as f:
+        pkl.dump(s_heatmap, f)
     s_heatmap = None
 
 def compute_heatmap_cosine_similarity(args):
 
-    with open(args.map_root + "\\c_heatmap.pkl", "rb") as f:
+    c_heatmap_file = os.path.join(args.map_root, 'c_heatmap.pkl')
+    s_heatmap_file = os.path.join(args.map_root, 's_heatmap.pkl')
+    with open(c_heatmap_file, 'rb') as f:
         c_heatmap = pkl.load(f)
 
-    with open(args.map_root + "\\s_heatmap.pkl", "rb") as f:
+    with open(s_heatmap_file, 'rb') as f:
         s_heatmap = pkl.load(f)
 
     cos = []
@@ -257,14 +265,14 @@ def compute_heatmap_cosine_similarity(args):
     # sanity: ensure both lists exist and have compatible lengths
     if not isinstance(c_heatmap, list) or not isinstance(s_heatmap, list):
         print('Warning: heatmap data is not in expected list format. Skipping cosine computation.')
-        with open(args.map_root + "\\cos.pkl", "wb") as f:
+        with open(os.path.join(args.map_root, 'cos.pkl'), 'wb') as f:
             pkl.dump(cos, f)
         return
 
     min_len = min(len(c_heatmap), len(s_heatmap))
     if min_len == 0:
         print('Warning: one or both heatmap lists are empty. Skipping cosine computation.')
-        with open(args.map_root + "\\cos.pkl", "wb") as f:
+        with open(os.path.join(args.map_root, 'cos.pkl'), 'wb') as f:
             pkl.dump(cos, f)
         return
 
@@ -281,7 +289,7 @@ def compute_heatmap_cosine_similarity(args):
             continue
         cos.append(cos_val)
 
-    with open(args.map_root + "\\cos.pkl", "wb") as f:
+    with open(os.path.join(args.map_root, 'cos.pkl'), 'wb') as f:
         pkl.dump(cos, f)
 
 def main():

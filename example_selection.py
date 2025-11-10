@@ -41,7 +41,8 @@ def main():
     ##### ResNet-18  #####
     elif args.model == 'rn18':
         model = tv.models.resnet18(num_classes=365)
-        state_dict = torch.load(f'{args.save_root}\\resnet18_places365.pth.tar')['state_dict']
+        state_dict_path = os.path.join(args.save_root, 'resnet18_places365.pth.tar')
+        state_dict = torch.load(state_dict_path)['state_dict']
         new_state_dict = {}
         for key in state_dict:
             if key.startswith('module.'):
@@ -75,13 +76,15 @@ def main():
                 act_matrix.append(model(image).squeeze().cpu().detach().numpy())
                 if batch_idx % int(len(trainloader)/args.num_act) == 0 and batch_idx != 0:
                     act_matrix = np.concatenate(act_matrix, axis=0)
-                    with open(f"{args.save_root}\\slice_act_{counter}_{layer}", 'wb') as f:
+                    path = os.path.join(args.save_root, f"slice_act_{counter}_{layer}")
+                    with open(path, 'wb') as f:
                         pickle.dump(act_matrix, f)
                     counter += 1
                     act_matrix = []
             if args.num_act == 1:
                 act_matrix = np.concatenate(act_matrix, axis=0)
-                with open(f"{args.save_root}\\slice_act_{counter}_{layer}", 'wb') as f:
+                path = os.path.join(args.save_root, f"slice_act_{counter}_{layer}")
+                with open(path, 'wb') as f:
                     pickle.dump(act_matrix, f)
     elif layer == 'l4':
         transform = tv.transforms.Compose([
@@ -103,19 +106,22 @@ def main():
                 act_matrix.append(model.extract_feature_4(image).squeeze().cpu().detach().numpy())
                 if batch_idx % int(len(trainloader)/args.num_act) == 0 and batch_idx != 0:
                     act_matrix = np.concatenate(act_matrix, axis=0)
-                    with open(f"{args.save_root}\\slice_act_{counter}_{layer}", 'wb') as f:
+                    path = os.path.join(args.save_root, f"slice_act_{counter}_{layer}")
+                    with open(path, 'wb') as f:
                         pickle.dump(act_matrix, f)
                     counter += 1
                     act_matrix = []
             if args.num_act == 1:
                 act_matrix = np.concatenate(act_matrix, axis=0)
-                with open(f"{args.save_root}\\slice_act_{counter}_{layer}", 'wb') as f:
+                path = os.path.join(args.save_root, f"slice_act_{counter}_{layer}")
+                with open(path, 'wb') as f:
                     pickle.dump(act_matrix, f)
 
     if True:
         offset = 0
         for i in tqdm(range(args.num_act)):
-            with open(f"{args.save_root}\\slice_act_{i}_{layer}", 'rb') as f:
+            path = os.path.join(args.save_root, f"slice_act_{i}_{layer}")
+            with open(path, 'rb') as f:
                 act_matrix = pickle.load(f)
             
             idx_matrix = np.zeros((args.num_example, act_matrix.shape[1]))
@@ -127,10 +133,12 @@ def main():
                 idx_matrix[:,j] = top_idx + offset
                 feat_matrix[:,j] = act_matrix[top_idx,j]
 
-            with open(f"{args.save_root}\\idx_{args.num_example}_{i}_{layer}.pkl", 'wb') as f:
+            path_idx = os.path.join(args.save_root, f"idx_{args.num_example}_{i}_{layer}.pkl")
+            with open(path_idx, 'wb') as f:
                 pickle.dump(idx_matrix, f)
 
-            with open(f"{args.save_root}\\feat_{args.num_example}_{i}_{layer}.pkl", 'wb') as f:
+            path_feat = os.path.join(args.save_root, f"feat_{args.num_example}_{i}_{layer}.pkl")
+            with open(path_feat, 'wb') as f:
                 pickle.dump(feat_matrix, f)
             offset += len(act_matrix)
 
@@ -140,9 +148,11 @@ def main():
         idx_matrix = np.zeros((args.num_example, act_matrix.shape[1]))
 
         for i in range(args.num_act):
-            with open(f"{args.save_root}\\idx_{args.num_example}_{i}_{layer}.pkl", 'rb') as f:
+            path_idx = os.path.join(args.save_root, f"idx_{args.num_example}_{i}_{layer}.pkl")
+            with open(path_idx, 'rb') as f:
                 idx_matrix = pickle.load(f)
-            with open(f"{args.save_root}\\feat_{args.num_example}_{i}_{layer}.pkl", 'rb') as f:
+            path_feat = os.path.join(args.save_root, f"feat_{args.num_example}_{i}_{layer}.pkl")
+            with open(path_feat, 'rb') as f:
                 feat_matrix = pickle.load(f)
             idx_mats.append(idx_matrix)
             feat_mats.append(feat_matrix)
@@ -155,7 +165,8 @@ def main():
             top_idx = np.flip(sorted_idx[-args.num_example:])
             idx_matrix[:,j] = idx_mats[top_idx,j]
         
-        with open(f"{args.save_root}\\slice_idx_{args.num_example}_{layer}.pkl", 'wb') as f:
+        path_slice_idx = os.path.join(args.save_root, f"slice_idx_{args.num_example}_{layer}.pkl")
+        with open(path_slice_idx, 'wb') as f:
             pickle.dump(idx_matrix, f)
 
     if True:

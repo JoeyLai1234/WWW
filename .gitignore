@@ -1,2 +1,14 @@
 datasets/
 datasets/
+
+# Ignore generated reports, results and heatmaps
+reports/
+results/
+reports/heatmaps/
+reports/heatmaps_spatial/
+
+# ignore cached embeddings and prediction pickles
+utils/*.pkl
+
+# Ignore documentation build/artifacts
+docs/
