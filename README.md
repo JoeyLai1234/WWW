@@ -180,5 +180,22 @@ This will produce `demo_artifacts.json` and run the small test under `tests/` wh
 
 These alternatives let you run the demo and concept-discovery pipeline without the full ImageNet-1k dataset. If you plan full experiments or quantitative comparisons, use the corresponding full datasets and follow the dataset preparation steps in the original papers.
 
+## Concept Matching Evaluation Results
 
+### Experimental Setup:
+- *Evaluation Method*: Final layer neuron concepts vs ground truth labels
+- *Dataset*: 103 neurons evaluated  
+- *Threshold*: 0.5 (for concept selection)
+- *Metrics*: Coverage (count) and Accuracy (CLIP_acc)
+
+### Results Comparison:
+
+| Method | Neurons with Concepts | Concept Accuracy |
+|--------|----------------------|------------------|
+| *Traditional (CLIP-Dissect)* | 103/103 (100%) | 100% |
+| *Our WWW Implementation* | 101/103 (98.1%) | 98.1% |
+
+### Semantic Similarity Scores:
+- *CLIP Cosine Similarity*: 0.6954 ± 0.0072
+- *MPNet Cosine Similarity*: 0.1354 ± 0.0048
 
